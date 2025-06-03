@@ -1,0 +1,30 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "postgresql"   // or your provider (mysql, etc)
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Contact {
+  id          Int      @id @default(autoincrement())
+  name        String
+  phone       String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  calls       Call[]
+}
+
+model Call {
+  id         Int      @id @default(autoincrement())
+  contact    Contact  @relation(fields: [contactId], references: [id])
+  contactId  Int
+  twilioSid  String   @unique
+  status     String?
+  message    String
+  createdAt  DateTime @default(now())
+}
+
