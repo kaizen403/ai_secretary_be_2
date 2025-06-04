@@ -17,18 +17,22 @@ async function synthesizeIndianEnglish(text, filename) {
 
   const payload = { text: stripSsml(text) };
 
-  const { data } = await axios.post(
-    url,
-    payload,
-    {
+  let data;
+  try {
+    ({ data } = await axios.post(url, payload, {
       headers: {
         "xi-api-key": apiKey,
         "Content-Type": "application/json",
         Accept: "audio/mpeg",
       },
       responseType: "arraybuffer",
-    },
-  );
+    }));
+  } catch (err) {
+    const msg = err.response?.data
+      ? Buffer.from(err.response.data).toString()
+      : err.message;
+    throw new Error(`ElevenLabs error: ${msg}`);
+  }
 
   // 2) Upload to GCS
   const objectName = `audio/${filename}.mp3`;
