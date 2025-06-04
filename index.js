@@ -4,7 +4,7 @@ const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const twilio = require("twilio");
 const { initSession, handleUserMessage, endSession } = require("./aiService");
-const { synthesizeHindi } = require("./ttsService");
+const { synthesizeIndianEnglish } = require("./ttsService");
 
 const app = express();
 const prisma = new PrismaClient();
@@ -23,7 +23,7 @@ app.get("/test-tts", async (req, res) => {
   const text =
     req.query.text ||
     "नमस्ते, यह एक पूर्ण परीक्षण संदेश है ताकि आप सुन सकें कि आवाज़ कैसी निकलती है।";
-  const url = await synthesizeHindi(text, "test-tts", false);
+  const url = await synthesizeIndianEnglish(text, "test-tts", false);
   res.json({ url });
 });
 
@@ -31,8 +31,8 @@ app.get("/test-tts", async (req, res) => {
 app.get("/test-ssml", async (req, res) => {
   const sessionId = "TEST";
   initSession(sessionId, { name: "Test User", description: "Demo" });
-  const ssml = await handleUserMessage(sessionId, "");
-  const url = await synthesizeHindi(ssml, "test-ssml", true);
+  const { ssml } = await handleUserMessage(sessionId, "");
+  const url = await synthesizeIndianEnglish(ssml, "test-ssml", true);
   endSession(sessionId);
   res.json({ url });
 });
@@ -43,11 +43,12 @@ app.post(
   "/twilio/voice",
   express.urlencoded({ extended: false }),
   async (req, res) => {
-    const { SpeDechResult, CallSid, To } = req.body;
+    const { SpeechResult, CallSid, To } = req.body;
     const twiml = new twilio.twiml.VoiceResponse();
 
     try {
-      let content,
+      let resp,
+        content,
         isSsml = false;
       if (!SpeechResult) {
         const contact = await prisma.contact.findUnique({
@@ -57,15 +58,19 @@ app.post(
           name: contact?.name || "मित्र",
           description: contact?.description || "",
         });
-        content = await handleUserMessage(CallSid, "");
+        resp = await handleUserMessage(CallSid, "");
+        content = resp.ssml;
         isSsml = true;
       } else {
-        content = await handleUserMessage(CallSid, SpeechResult);
+        resp = await handleUserMessage(CallSid, SpeechResult);
+        content = resp.ssml;
         isSsml = content.trim().startsWith("<speak>");
       }
 
-      // Synthesize as before...
-      const audioUrl = await synthesizeHindi(
+      const shouldHangup = resp.toolCalls.some((c) => c.name === "hangup");
+
+      // Synthesize as before using Indian-accented English
+      const audioUrl = await synthesizeIndianEnglish(
         content,
         `${CallSid}_${SpeechResult ? "resp" : "greet"}`,
         isSsml,
@@ -83,6 +88,7 @@ app.post(
 
       // Play inside the gather so we’re listening while playing
       gather.play(audioUrl);
+      if (shouldHangup) twiml.hangup();
     } catch (err) {
       console.error("TTS/Voice error:", err);
       twiml.say(
