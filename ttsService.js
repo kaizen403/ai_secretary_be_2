@@ -1,29 +1,43 @@
 // ttsService.js
-const { TextToSpeechClient } = require("@google-cloud/text-to-speech");
+const axios = require("axios");
 const { Storage } = require("@google-cloud/storage");
 
-const ttsClient = new TextToSpeechClient();
 const storage = new Storage();
 const BUCKET = "kaz_ai";
 
-// Generates speech using an Indian-accented English voice
-async function synthesizeIndianEnglish(textOrSsml, filename, isSsml = false) {
-  // 1) TTS request
-  const input = isSsml ? { ssml: textOrSsml } : { text: textOrSsml };
-  const [response] = await ttsClient.synthesizeSpeech({
-    input,
-    voice: {
-      languageCode: "en-IN",
-      name: "en-IN-Standard-E",
-      ssmlGender: "FEMALE",
-    },
-    audioConfig: { audioEncoding: "MP3", speakingRate: 1.0 },
-  });
+// Generates speech using the ElevenLabs API and stores the MP3 in GCS
+function stripSsml(ssml) {
+  return ssml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+async function synthesizeIndianEnglish(text, filename) {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  const voiceId = process.env.ELEVENLABS_VOICE_ID;
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+
+  const payload = { text: stripSsml(text) };
+
+  let data;
+  try {
+    ({ data } = await axios.post(url, payload, {
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg",
+      },
+      responseType: "arraybuffer",
+    }));
+  } catch (err) {
+    const msg = err.response?.data
+      ? Buffer.from(err.response.data).toString()
+      : err.message;
+    throw new Error(`ElevenLabs error: ${msg}`);
+  }
 
   // 2) Upload to GCS
   const objectName = `audio/${filename}.mp3`;
   const file = storage.bucket(BUCKET).file(objectName);
-  await file.save(response.audioContent, {
+  await file.save(data, {
     contentType: "audio/mpeg",
     public: true,
     metadata: { cacheControl: "public, max-age=31536000" },
