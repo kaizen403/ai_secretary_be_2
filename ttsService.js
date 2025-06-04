@@ -6,7 +6,8 @@ const ttsClient = new TextToSpeechClient();
 const storage = new Storage();
 const BUCKET = "kaz_ai";
 
-async function synthesizeHindi(textOrSsml, filename, isSsml = false) {
+// Generates speech using an Indian-accented English voice
+async function synthesizeIndianEnglish(textOrSsml, filename, isSsml = false) {
   // 1) TTS request
   const input = isSsml ? { ssml: textOrSsml } : { text: textOrSsml };
   const [response] = await ttsClient.synthesizeSpeech({
@@ -32,4 +33,4 @@ async function synthesizeHindi(textOrSsml, filename, isSsml = false) {
   return `https://storage.googleapis.com/${BUCKET}/${objectName}`;
 }
 
-module.exports = { synthesizeHindi };
+module.exports = { synthesizeIndianEnglish };
