@@ -1,29 +1,33 @@
 // ttsService.js
-const { TextToSpeechClient } = require("@google-cloud/text-to-speech");
+const axios = require("axios");
 const { Storage } = require("@google-cloud/storage");
 
-const ttsClient = new TextToSpeechClient();
 const storage = new Storage();
 const BUCKET = "kaz_ai";
 
-// Generates speech using an Indian-accented English voice
-async function synthesizeIndianEnglish(textOrSsml, filename, isSsml = false) {
-  // 1) TTS request
-  const input = isSsml ? { ssml: textOrSsml } : { text: textOrSsml };
-  const [response] = await ttsClient.synthesizeSpeech({
-    input,
-    voice: {
-      languageCode: "en-IN",
-      name: "en-IN-Standard-E",
-      ssmlGender: "FEMALE",
+// Generates speech using the ElevenLabs API and stores the MP3 in GCS
+async function synthesizeIndianEnglish(text, filename) {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  const voiceId = process.env.ELEVENLABS_VOICE_ID;
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+
+  const { data } = await axios.post(
+    url,
+    { text },
+    {
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg",
+      },
+      responseType: "arraybuffer",
     },
-    audioConfig: { audioEncoding: "MP3", speakingRate: 1.0 },
-  });
+  );
 
   // 2) Upload to GCS
   const objectName = `audio/${filename}.mp3`;
   const file = storage.bucket(BUCKET).file(objectName);
-  await file.save(response.audioContent, {
+  await file.save(data, {
     contentType: "audio/mpeg",
     public: true,
     metadata: { cacheControl: "public, max-age=31536000" },
