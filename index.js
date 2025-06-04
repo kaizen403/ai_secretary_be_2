@@ -23,7 +23,7 @@ app.get("/test-tts", async (req, res) => {
   const text =
     req.query.text ||
     "नमस्ते, यह एक पूर्ण परीक्षण संदेश है ताकि आप सुन सकें कि आवाज़ कैसी निकलती है।";
-  const url = await synthesizeIndianEnglish(text, "test-tts", false);
+  const url = await synthesizeIndianEnglish(text, "test-tts");
   res.json({ url });
 });
 
@@ -32,7 +32,7 @@ app.get("/test-ssml", async (req, res) => {
   const sessionId = "TEST";
   initSession(sessionId, { name: "Test User", description: "Demo" });
   const { ssml } = await handleUserMessage(sessionId, "");
-  const url = await synthesizeIndianEnglish(ssml, "test-ssml", true);
+  const url = await synthesizeIndianEnglish(ssml, "test-ssml");
   endSession(sessionId);
   res.json({ url });
 });
@@ -48,8 +48,7 @@ app.post(
 
     try {
       let resp,
-        content,
-        isSsml = false;
+        content;
       if (!SpeechResult) {
         const contact = await prisma.contact.findUnique({
           where: { phone: To },
@@ -60,11 +59,9 @@ app.post(
         });
         resp = await handleUserMessage(CallSid, "");
         content = resp.ssml;
-        isSsml = true;
       } else {
         resp = await handleUserMessage(CallSid, SpeechResult);
         content = resp.ssml;
-        isSsml = content.trim().startsWith("<speak>");
       }
 
       const shouldHangup = resp.toolCalls.some((c) => c.name === "hangup");
@@ -73,7 +70,6 @@ app.post(
       const audioUrl = await synthesizeIndianEnglish(
         content,
         `${CallSid}_${SpeechResult ? "resp" : "greet"}`,
-        isSsml,
       );
 
       // === NEW: allow barge-in during playback ===
