@@ -6,14 +6,20 @@ const storage = new Storage();
 const BUCKET = "kaz_ai";
 
 // Generates speech using the ElevenLabs API and stores the MP3 in GCS
+function stripSsml(ssml) {
+  return ssml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 async function synthesizeIndianEnglish(text, filename) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const voiceId = process.env.ELEVENLABS_VOICE_ID;
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
 
+  const payload = { text: stripSsml(text) };
+
   const { data } = await axios.post(
     url,
-    { text },
+    payload,
     {
       headers: {
         "xi-api-key": apiKey,
