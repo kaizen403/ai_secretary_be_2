@@ -13,9 +13,14 @@ function stripSsml(ssml) {
 async function synthesizeIndianEnglish(text, filename) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const voiceId = process.env.ELEVENLABS_VOICE_ID;
-  const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+  // Updated API endpoint requires the `/stream` suffix
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
 
-  const payload = { text: stripSsml(text) };
+  const payload = {
+    text: stripSsml(text),
+    // Use the latest multilingual model for best quality
+    model_id: "eleven_multilingual_v2",
+  };
 
   const { data } = await axios.post(
     url,
