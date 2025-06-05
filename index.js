@@ -44,6 +44,7 @@ app.post(
   express.urlencoded({ extended: false }),
   async (req, res) => {
     const { SpeechResult, CallSid, To } = req.body;
+    console.log(`[Voice] CallSid=${CallSid} Speech=${SpeechResult || "<none>"}`);
     const twiml = new twilio.twiml.VoiceResponse();
 
     try {
@@ -71,6 +72,7 @@ app.post(
         content,
         `${CallSid}_${SpeechResult ? "resp" : "greet"}`,
       );
+      console.log(`[Voice] Audio URL ${audioUrl}`);
 
       // === NEW: allow barge-in during playback ===
       const gather = twiml.gather({
