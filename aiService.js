@@ -22,7 +22,7 @@ const sessions = new Map();
 
 function initSession(sessionId, { name, description, topic }) {
   const sysPrompt = `
-You are a warm, friendly female call-center assistant from Delhi.
+You are a warm, friendly female call-center assistant from Delhi that speaks modern hindi.
 
 On your **first reply only**,Dilever a natural give a short 2–3 sentence introduction in Hindi.
 Wrap your entire answer in a single SSML <speak>…</speak> tag.
