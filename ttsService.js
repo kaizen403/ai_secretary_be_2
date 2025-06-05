@@ -13,9 +13,16 @@ function stripSsml(ssml) {
 async function synthesizeIndianEnglish(text, filename) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const voiceId = process.env.ELEVENLABS_VOICE_ID;
-  const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+  // Updated API endpoint requires the `/stream` suffix
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
 
-  const payload = { text: stripSsml(text) };
+  console.log(`[TTS] Requesting speech for '${filename}'`);
+
+  const payload = {
+    text: stripSsml(text),
+    // Use the latest multilingual model for best quality
+    model_id: "eleven_multilingual_v2",
+  };
 
   const { data } = await axios.post(
     url,
@@ -30,17 +37,22 @@ async function synthesizeIndianEnglish(text, filename) {
     },
   );
 
+  console.log(`[TTS] Received ${data.length} bytes from ElevenLabs`);
+
   // 2) Upload to GCS
   const objectName = `audio/${filename}.mp3`;
   const file = storage.bucket(BUCKET).file(objectName);
+  console.log(`[TTS] Saving audio to ${objectName}`);
   await file.save(data, {
     contentType: "audio/mpeg",
     public: true,
     metadata: { cacheControl: "public, max-age=31536000" },
   });
+  console.log(`[TTS] Saved audio to ${objectName}`);
 
-  // 3) Return the public URL via Google’s CDN
-  return `https://storage.googleapis.com/${BUCKET}/${objectName}`;
+  const publicUrl = `https://storage.googleapis.com/${BUCKET}/${objectName}`;
+  console.log(`[TTS] Public URL ${publicUrl}`);
+  return publicUrl;
 }
 
 module.exports = { synthesizeIndianEnglish };
