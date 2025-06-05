@@ -16,6 +16,8 @@ async function synthesizeIndianEnglish(text, filename) {
   // Updated API endpoint requires the `/stream` suffix
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
 
+  console.log(`[TTS] Requesting speech for '${filename}'`);
+
   const payload = {
     text: stripSsml(text),
     // Use the latest multilingual model for best quality
@@ -35,17 +37,22 @@ async function synthesizeIndianEnglish(text, filename) {
     },
   );
 
+  console.log(`[TTS] Received ${data.length} bytes from ElevenLabs`);
+
   // 2) Upload to GCS
   const objectName = `audio/${filename}.mp3`;
   const file = storage.bucket(BUCKET).file(objectName);
+  console.log(`[TTS] Saving audio to ${objectName}`);
   await file.save(data, {
     contentType: "audio/mpeg",
     public: true,
     metadata: { cacheControl: "public, max-age=31536000" },
   });
+  console.log(`[TTS] Saved audio to ${objectName}`);
 
-  // 3) Return the public URL via Google’s CDN
-  return `https://storage.googleapis.com/${BUCKET}/${objectName}`;
+  const publicUrl = `https://storage.googleapis.com/${BUCKET}/${objectName}`;
+  console.log(`[TTS] Public URL ${publicUrl}`);
+  return publicUrl;
 }
 
 module.exports = { synthesizeIndianEnglish };
