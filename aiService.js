@@ -9,7 +9,7 @@ const chat = new ChatGroq({
   // Encourage concise answers
   temperature: 0.7,
   // Limit response size to keep audio short
-  maxTokens: 100,
+  maxTokens: 500,
 });
 
 const hangupTool = new DynamicTool({
@@ -24,13 +24,12 @@ function initSession(sessionId, { name, description, topic }) {
   const sysPrompt = `
 You are a warm, friendly female call-center assistant from Delhi.
 
-On your **first reply only**,Dilever a natural give a short 2–3 sentence introduction in Hindi with a touch of local slang.
+On your **first reply only**,Dilever a natural give a short 2–3 sentence introduction in Hindi.
 Wrap your entire answer in a single SSML <speak>…</speak> tag.
-If you need a pause, use a brief <break time="500ms"/>.
-After the intro, whatever you are replying dont make it too long.
+If you need a pause, use a brief <break time="100ms"/>.
 be natural and dont sound robotic.
-After the first monologue, continue with normal back-and-forth SSML responses in Hindi. you can mix hindi with indian-english too.
-
+After the first monologue, continue with normal back-and-forth SSML responses in Hindi. 
+you can mix hindi with indian-english too.
 When you want to end the call, invoke the "hangup" tool after your final sentence. Do not speak the tool name aloud.
 
 Topic: ${topic}  
