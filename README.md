@@ -15,7 +15,7 @@ Copy `.env.example` to `.env` and fill in the required credentials. The ElevenLa
 ## IAM Policy for the Reminder Worker
 
 The local worker polls the SQS queue to deliver scheduled reminder calls. Grant
-its IAM role the following permissions on your queue:
+the worker's IAM role the following permissions on your queue:
 
 ```json
 {
@@ -35,4 +35,4 @@ its IAM role the following permissions on your queue:
 ```
 
 Replace the `Resource` ARN with your queue's ARN so that the worker can
-receive, delete and (if necessary) send messages.
+receive, delete, and optionally send messages.
