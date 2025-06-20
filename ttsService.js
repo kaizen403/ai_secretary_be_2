@@ -13,6 +13,11 @@ function stripSsml(ssml) {
 async function synthesizeIndianEnglish(text, filename) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const voiceId = process.env.ELEVENLABS_VOICE_ID;
+  if (!apiKey || !voiceId) {
+    throw new Error(
+      "ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID environment variables are required",
+    );
+  }
   // Updated API endpoint requires the `/stream` suffix
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
 
@@ -24,18 +29,30 @@ async function synthesizeIndianEnglish(text, filename) {
     model_id: "eleven_multilingual_v2",
   };
 
-  const { data } = await axios.post(
-    url,
-    payload,
-    {
-      headers: {
-        "xi-api-key": apiKey,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
+  let data;
+  try {
+    const response = await axios.post(
+      url,
+      payload,
+      {
+        headers: {
+          "xi-api-key": apiKey,
+          "Content-Type": "application/json",
+          Accept: "audio/mpeg",
+        },
+        responseType: "arraybuffer",
       },
-      responseType: "arraybuffer",
-    },
-  );
+    );
+    data = response.data;
+  } catch (err) {
+    if (err.response?.status === 401) {
+      throw new Error("Unauthorized: check ELEVENLABS_API_KEY");
+    }
+    if (err.response?.status === 404) {
+      throw new Error(`Voice not found for ELEVENLABS_VOICE_ID=${voiceId}`);
+    }
+    throw err;
+  }
 
   console.log(`[TTS] Received ${data.length} bytes from ElevenLabs`);
 
