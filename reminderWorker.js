@@ -2,13 +2,32 @@ const { SQSClient, ReceiveMessageCommand, DeleteMessageCommand } = require('@aws
 const twilio = require('twilio');
 require('dotenv').config();
 
+const required = [
+  "AWS_REGION",
+  "REMINDER_QUEUE_URL",
+  "TWILIO_ACCOUNT_SID",
+  "TWILIO_AUTH_TOKEN",
+  "TWILIO_PHONE_NUMBER",
+  "BASE_URL",
+];
+for (const key of required) {
+  if (!process.env[key]) {
+    console.error(`[Reminder] Missing environment variable ${key}`);
+    process.exit(1);
+  }
+}
+
 const sqs = new SQSClient({ region: process.env.AWS_REGION });
 const queueUrl = process.env.REMINDER_QUEUE_URL;
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const client = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN,
+);
 const fromNum = process.env.TWILIO_PHONE_NUMBER;
 const baseUrl = process.env.BASE_URL;
 
 async function pollQueue() {
+  console.log(`[Reminder] Worker started. Polling ${queueUrl}`);
   while (true) {
     try {
       const { Messages } = await sqs.send(

@@ -4,7 +4,27 @@ const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const twilio = require("twilio");
 const { initSession, handleUserMessage, endSession } = require("./aiService");
-const { synthesizeIndianEnglish } = require("./ttsService");
+const { synthesizeIndianEnglish, stripSsml } = require("./ttsService");
+
+const requiredEnv = [
+  "TWILIO_ACCOUNT_SID",
+  "TWILIO_AUTH_TOKEN",
+  "TWILIO_PHONE_NUMBER",
+  "GROQ_API_KEY",
+  "BASE_URL",
+];
+for (const key of requiredEnv) {
+  if (!process.env[key]) {
+    console.error(`[Startup] Missing environment variable ${key}`);
+    process.exit(1);
+  }
+}
+
+if (!process.env.ELEVENLABS_API_KEY || !process.env.ELEVENLABS_VOICE_ID) {
+  console.warn(
+    "[Startup] ELEVENLABS_API_KEY or ELEVENLABS_VOICE_ID not set; using Twilio TTS",
+  );
+}
 
 const app = express();
 const prisma = new PrismaClient();
@@ -45,6 +65,7 @@ app.post(
   async (req, res) => {
     const { SpeechResult, CallSid, To, From } = req.body;
     console.log(`[Voice] CallSid=${CallSid} Speech=${SpeechResult || "<none>"}`);
+    console.log(`[Voice] From=${From} To=${To}`);
     const twiml = new twilio.twiml.VoiceResponse();
 
     try {
@@ -66,14 +87,21 @@ app.post(
         content = resp.ssml;
       }
 
-      const shouldHangup = resp.toolCalls.some((c) => c.name === "hangup");
+      console.log(`[Voice] SSML content: ${content}`);
 
-      // Synthesize as before using Indian-accented English
+      const shouldHangup = resp.toolCalls.some((c) => c.name === "hangup");
+      console.log(`[Voice] Tool calls: ${JSON.stringify(resp.toolCalls)}`);
+
+      // Synthesize using ElevenLabs if credentials are set
       const audioUrl = await synthesizeIndianEnglish(
         content,
         `${CallSid}_${SpeechResult ? "resp" : "greet"}`,
       );
-      console.log(`[Voice] Audio URL ${audioUrl}`);
+      if (audioUrl) {
+        console.log(`[Voice] Audio URL ${audioUrl}`);
+      } else {
+        console.log("[Voice] Using Twilio text-to-speech fallback");
+      }
 
       // === NEW: allow barge-in during playback ===
       const gather = twiml.gather({
@@ -86,8 +114,13 @@ app.post(
       });
 
       // Play inside the gather so we’re listening while playing
-      gather.play(audioUrl);
+      if (audioUrl) {
+        gather.play(audioUrl);
+      } else {
+        gather.say({ language: "hi-IN" }, stripSsml(content));
+      }
       if (shouldHangup) twiml.hangup();
+      console.log(`[Voice] TwiML response: ${twiml.toString()}`);
     } catch (err) {
       console.error("TTS/Voice error:", err);
       twiml.say(
@@ -118,6 +151,7 @@ app.post(
   express.urlencoded({ extended: false }),
   async (req, res) => {
     const { CallSid } = req.body;
+    console.log(`[Status] Call ${CallSid} completed`);
     endSession(CallSid);
     await prisma.call.updateMany({
       where: { twilioSid: CallSid },
@@ -134,6 +168,7 @@ app.post("/call", async (req, res) => {
   }
 
   try {
+    console.log(`[Call] Outbound call requested to ${to} for ${name}`);
     const contact = await prisma.contact.upsert({
       where: { phone: to },
       update: { name, description },
@@ -147,6 +182,7 @@ app.post("/call", async (req, res) => {
       statusCallback: `${baseUrl}/twilio/status`,
       statusCallbackEvent: ["completed"],
     });
+    console.log(`[Call] Twilio SID ${call.sid} status ${call.status}`);
 
     await prisma.call.create({
       data: {
