@@ -43,13 +43,14 @@ app.post(
   "/twilio/voice",
   express.urlencoded({ extended: false }),
   async (req, res) => {
-    const { SpeechResult, CallSid, To } = req.body;
+    const { SpeechResult, CallSid, To, From } = req.body;
     console.log(`[Voice] CallSid=${CallSid} Speech=${SpeechResult || "<none>"}`);
     const twiml = new twilio.twiml.VoiceResponse();
 
     try {
       let resp,
         content;
+      const userPhone = From === fromNum ? To : From;
       if (!SpeechResult) {
         const contact = await prisma.contact.findUnique({
           where: { phone: To },
@@ -58,10 +59,10 @@ app.post(
           name: contact?.name || "मित्र",
           description: contact?.description || "",
         });
-        resp = await handleUserMessage(CallSid, "");
+        resp = await handleUserMessage(CallSid, "", { phone: userPhone });
         content = resp.ssml;
       } else {
-        resp = await handleUserMessage(CallSid, SpeechResult);
+        resp = await handleUserMessage(CallSid, SpeechResult, { phone: userPhone });
         content = resp.ssml;
       }
 
@@ -96,6 +97,18 @@ app.post(
       twiml.hangup();
     }
 
+  res.type("text/xml").send(twiml.toString());
+  },
+);
+
+app.post(
+  "/twilio/reminder",
+  express.urlencoded({ extended: false }),
+  (req, res) => {
+    const { message } = req.query;
+    const twiml = new twilio.twiml.VoiceResponse();
+    twiml.say({ language: "en-US" }, message || "Here is your reminder.");
+    twiml.hangup();
     res.type("text/xml").send(twiml.toString());
   },
 );
