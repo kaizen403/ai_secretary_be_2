@@ -8,6 +8,17 @@ This service provides a simple phone-based assistant that you can call to schedu
 - **Outbound calls** – The `/call` endpoint or the reminder worker uses Twilio to dial the user and connect to the same `/twilio/voice` flow.
 - **Todo memory** – Per-phone-number todo lists stored in memory. Tools `add_todo` and `list_todos` are available to the AI.
 
+## Setup
+
+Run `npm install` to install dependencies. Then copy `.env.example` to `.env` and fill in the required credentials:
+
+- Twilio (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`)
+- Groq (`GROQ_API_KEY`)
+- ElevenLabs (`ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`)
+- AWS region and queue (`AWS_REGION`, `REMINDER_QUEUE_URL`)
+
+Without these values the server and reminder worker will fail to start.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and fill in the required credentials. The ElevenLabs text-to-speech integration requires `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` to be set or the server will fail to synthesize audio.
