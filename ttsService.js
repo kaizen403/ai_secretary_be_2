@@ -14,10 +14,11 @@ async function synthesizeIndianEnglish(text, filename) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const voiceId = process.env.ELEVENLABS_VOICE_ID;
   if (!apiKey || !voiceId) {
-    console.warn(
-      "[TTS] ELEVENLABS credentials missing; falling back to Twilio voice",
+
+    throw new Error(
+      "ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID environment variables are required",
     );
-    return null;
+
   }
   // Updated API endpoint requires the `/stream` suffix
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;

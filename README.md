@@ -21,7 +21,8 @@ Without these values the server and reminder worker will fail to start.
 
 ## Configuration
 
-Copy `.env.example` to `.env` and fill in the required credentials. The ElevenLabs text-to-speech integration uses `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID`. If these are omitted, the server falls back to Twilio's built-in voice.
+
+Copy `.env.example` to `.env` and fill in the required credentials. The ElevenLabs text-to-speech integration requires `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` to be set or the server will fail to synthesize audio.
 
 ## IAM Policy for the Reminder Worker
 
