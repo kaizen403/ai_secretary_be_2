@@ -86,9 +86,11 @@ Begin immediately with that brief introduction.
   `.trim();
 
   sessions.set(sessionId, [{ role: "system", content: sysPrompt }]);
+  console.log(`[AI] Session ${sessionId} initialized for ${name}`);
 }
 async function handleUserMessage(sessionId, userText, metadata = {}) {
   const history = sessions.get(sessionId) || [];
+  console.log(`[AI] User said: ${userText}`);
   history.push({ role: "user", content: userText });
   const response = await chat.call(history, {
     tools: [hangupTool, addTodoTool, listTodosTool, setReminderTool],
@@ -100,6 +102,7 @@ async function handleUserMessage(sessionId, userText, metadata = {}) {
   sessions.set(sessionId, history);
   const toolCalls =
     response.tool_calls || response.lc_kwargs?.tool_calls || [];
+  console.log(`[AI] Tool calls: ${JSON.stringify(toolCalls)}`);
   return { ssml, toolCalls };
 }
 

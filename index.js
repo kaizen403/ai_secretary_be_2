@@ -45,6 +45,7 @@ app.post(
   async (req, res) => {
     const { SpeechResult, CallSid, To, From } = req.body;
     console.log(`[Voice] CallSid=${CallSid} Speech=${SpeechResult || "<none>"}`);
+    console.log(`[Voice] From=${From} To=${To}`);
     const twiml = new twilio.twiml.VoiceResponse();
 
     try {
@@ -66,7 +67,10 @@ app.post(
         content = resp.ssml;
       }
 
+      console.log(`[Voice] SSML content: ${content}`);
+
       const shouldHangup = resp.toolCalls.some((c) => c.name === "hangup");
+      console.log(`[Voice] Tool calls: ${JSON.stringify(resp.toolCalls)}`);
 
       // Synthesize as before using Indian-accented English
       const audioUrl = await synthesizeIndianEnglish(
@@ -88,6 +92,7 @@ app.post(
       // Play inside the gather so we’re listening while playing
       gather.play(audioUrl);
       if (shouldHangup) twiml.hangup();
+      console.log(`[Voice] TwiML response: ${twiml.toString()}`);
     } catch (err) {
       console.error("TTS/Voice error:", err);
       twiml.say(
@@ -118,6 +123,7 @@ app.post(
   express.urlencoded({ extended: false }),
   async (req, res) => {
     const { CallSid } = req.body;
+    console.log(`[Status] Call ${CallSid} completed`);
     endSession(CallSid);
     await prisma.call.updateMany({
       where: { twilioSid: CallSid },
@@ -134,6 +140,7 @@ app.post("/call", async (req, res) => {
   }
 
   try {
+    console.log(`[Call] Outbound call requested to ${to} for ${name}`);
     const contact = await prisma.contact.upsert({
       where: { phone: to },
       update: { name, description },
@@ -147,6 +154,7 @@ app.post("/call", async (req, res) => {
       statusCallback: `${baseUrl}/twilio/status`,
       statusCallbackEvent: ["completed"],
     });
+    console.log(`[Call] Twilio SID ${call.sid} status ${call.status}`);
 
     await prisma.call.create({
       data: {
