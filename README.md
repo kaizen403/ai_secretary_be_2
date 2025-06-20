@@ -21,6 +21,7 @@ Without these values the server and reminder worker will fail to start.
 
 ## Configuration
 
+
 Copy `.env.example` to `.env` and fill in the required credentials. The ElevenLabs text-to-speech integration requires `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` to be set or the server will fail to synthesize audio.
 
 ## IAM Policy for the Reminder Worker
